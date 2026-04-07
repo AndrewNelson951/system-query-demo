@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advisor Board</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #3b82f6;
+      color: #1a1a1a;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 20px;
+      font-size: 1.5rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.1rem;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── System Prompt ── */
+    #system-prompt {
+      width: 100%;
+      padding: 12px 16px;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      color: #1a1a1a;
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.5;
+      outline: none;
+      resize: vertical;
+      min-height: 60px;
+      transition: border-color 0.2s;
+    }
+
+    #system-prompt:focus {
+      border-color: #2563eb;
+    }
+
+    /* ── Top Section ── */
+    .section-question {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    #question-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      color: #1a1a1a;
+      font-size: 1.5rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #question-input:focus {
+      border-color: #2563eb;
+    }
+
+    #submit-btn {
+      padding: 12px 24px;
+      background: #1e40af;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    #submit-btn:hover {
+      background: #1e3a8a;
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Panels container ── */
+    .panels {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* ── Shared panel styles ── */
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 80px;
+    }
+
+    /* ── Resize handle ── */
+    .resize-handle {
+      flex-shrink: 0;
+      height: 8px;
+      cursor: row-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .resize-handle::after {
+      content: '';
+      width: 40px;
+      height: 3px;
+      background: #d1d5db;
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+
+    .resize-handle:hover::after {
+      background: #2563eb;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: #f0f0f0;
+      border-bottom: 1px solid #d1d5db;
+      font-size: 1.125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      font-size: 1.425rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .panel-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .panel-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .panel-body::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    .placeholder {
+      color: #9ca3af;
+      font-style: italic;
+    }
+
+    /* ── Copy button ── */
+    #copy-btn {
+      padding: 4px 12px;
+      background: transparent;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      color: #6b7280;
+      font-size: 1.125rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    #copy-btn:hover {
+      border-color: #2563eb;
+      color: #2563eb;
+    }
+
+    #copy-btn.copied {
+      border-color: #16a34a;
+      color: #16a34a;
+    }
+
+    /* ── Request panel (fixed height, read-only) ── */
+    .panel-request {
+      flex: none;
+      max-height: 200px;
+    }
+
+    .panel-request .panel-body {
+      font-family: 'Courier New', monospace;
+      font-size: 1.17rem;
+      color: #6b7280;
+    }
+
+    /* ── Raw response panel ── */
+    .panel-raw {
+    }
+
+    .panel-raw .panel-body {
+      font-family: 'Courier New', monospace;
+      font-size: 1.17rem;
+      color: #6b7280;
+    }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #d1d5db;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Advisor Board</h1>
+
+  <!-- System Prompt -->
+  <textarea id="system-prompt" rows="3" placeholder="Enter a system prompt to guide the advisor's behavior…"></textarea>
+
+  <!-- Question input -->
+  <div class="section-question">
+    <input
+      id="question-input"
+      type="text"
+      placeholder="Ask a tech question…"
+      autocomplete="off"
+    />
+    <button id="submit-btn">Ask</button>
+  </div>
+
+  <!-- Request sent to API -->
+  <div class="panel panel-request">
+    <div class="panel-header">
+      <span>Request Sent to API</span>
+    </div>
+    <div class="panel-body" id="request-body">
+      <span class="placeholder">The request payload will appear here after submitting.</span>
+    </div>
+  </div>
+
+  <div class="panels" id="panels">
+    <!-- Middle: Answer -->
+    <div class="panel" id="answer-panel">
+      <div class="panel-header">
+        <span>Answer</span>
+        <button id="copy-btn">Copy</button>
+      </div>
+      <div class="panel-body" id="answer-body">
+        <span class="placeholder">Your answer will appear here.</span>
+      </div>
+    </div>
+
+    <div class="resize-handle" id="resize-handle"></div>
+
+    <!-- Bottom: Raw API response -->
+    <div class="panel panel-raw" id="raw-panel">
+      <div class="panel-header">
+        <span>Raw API Response</span>
+      </div>
+      <div class="panel-body" id="raw-body">
+        <span class="placeholder">Full API response JSON will appear here.</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const systemPrompt = document.getElementById('system-prompt');
+    const input = document.getElementById('question-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const requestBody = document.getElementById('request-body');
+    const answerBody = document.getElementById('answer-body');
+    const rawBody = document.getElementById('raw-body');
+    const copyBtn = document.getElementById('copy-btn');
+
+    async function askQuestion() {
+      const question = input.value.trim();
+      if (!question) return;
+
+      // Loading state
+      submitBtn.disabled = true;
+      answerBody.innerHTML = '<span class="spinner"></span>Thinking…';
+      rawBody.innerHTML = '<span class="placeholder">Waiting for response…</span>';
+
+      try {
+        const payload = { question, system: systemPrompt.value.trim() || undefined };
+
+        // Show what we're sending
+        requestBody.textContent = JSON.stringify(payload, null, 2);
+
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        // Display answer
+        const answerText = data?.content?.[0]?.text ?? '(no answer returned)';
+        answerBody.textContent = answerText;
+
+        // Display raw response
+        rawBody.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        answerBody.innerHTML = `<span style="color:#dc2626">Error: ${err.message}</span>`;
+        rawBody.textContent = '';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    submitBtn.addEventListener('click', askQuestion);
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') askQuestion();
+    });
+
+    // ── Resize handle logic ──
+    const panelsEl = document.getElementById('panels');
+    const answerPanel = document.getElementById('answer-panel');
+    const rawPanel = document.getElementById('raw-panel');
+    const resizeHandle = document.getElementById('resize-handle');
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startAnswerH = answerPanel.offsetHeight;
+      const startRawH = rawPanel.offsetHeight;
+
+      function onMouseMove(e) {
+        const delta = e.clientY - startY;
+        const newAnswerH = Math.max(80, startAnswerH + delta);
+        const newRawH = Math.max(80, startRawH - delta);
+        answerPanel.style.height = newAnswerH + 'px';
+        rawPanel.style.height = newRawH + 'px';
+        answerPanel.style.flex = 'none';
+        rawPanel.style.flex = 'none';
+      }
+
+      function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+
+    copyBtn.addEventListener('click', () => {
+      const text = answerBody.textContent;
+      if (!text || answerBody.querySelector('.placeholder')) return;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  </script>
+
+</body>
+</html>
